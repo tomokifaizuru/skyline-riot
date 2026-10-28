@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Skyline Riot v0.1</title>
+  <link rel="stylesheet" href="style.css?v=0.1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" tabindex="0"></canvas>
+
+    <div id="hud" aria-hidden="false">
+      <div id="hudTop">
+        <div>
+          <div class="chip">
+            <div class="label">Score</div>
+            <div class="value" id="scoreVal">0</div>
+          </div>
+          <div class="chip mag" style="margin-top:8px">
+            <div class="label">Combo</div>
+            <div class="value" id="comboVal">x0</div>
+          </div>
+          <div id="boostBar" title="Boost"><div id="boostFill"></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <button id="pauseBtn" type="button" aria-label="Pause" title="Pause">⏸</button>
+          <div class="chip yel">
+            <div class="label">Time</div>
+            <div class="value" id="timeVal">1:30</div>
+          </div>
+          <div class="chip">
+            <div class="label">Tags</div>
+            <div class="value" id="tagVal">0/6</div>
+          </div>
+        </div>
+      </div>
+      <div id="comboFlash">COMBO x2</div>
+      <div id="arrowHint" aria-hidden="true">➤</div>
+      <div id="tagToast">TAGGED!</div>
+    </div>
+
+    <div id="mobileControls">
+      <div class="stickWrap" id="stick">
+        <div class="stickKnob" id="stickKnob"></div>
+      </div>
+      <div class="btnCol">
+        <button type="button" class="actionBtn boost" id="btnBoost">BOOST</button>
+        <button type="button" class="actionBtn tag" id="btnTag">TAG</button>
+        <button type="button" class="actionBtn jump" id="btnJump">JUMP</button>
+      </div>
+    </div>
+
+    <div id="overlay" class="visible" data-mode="menu">
+      <div class="panel" id="menuPanel">
+        <div class="logoWrap"><canvas id="logoCanvas" width="560" height="180"></canvas></div>
+        <h1>Skyline Riot</h1>
+        <p class="version">v0.1 CONCEPT</p>
+        <p class="tagline">Motorised Sky Treks. Tag the district. Own the night.</p>
+        <div class="btnRow">
+          <button type="button" class="menuBtn" id="btnStart">Start Run</button>
+          <button type="button" class="menuBtn secondary" id="btnHow">How to Play</button>
+        </div>
+      </div>
+
+      <div class="panel" id="howPanel" style="display:none">
+        <h1 style="font-size:28px">How to Play</h1>
+        <ul class="howList">
+          <li><strong>Move:</strong> WASD / arrows, or left stick on phone</li>
+          <li><strong>Jump:</strong> Space / JUMP — hold for higher leap</li>
+          <li><strong>Tricks:</strong> in air, press Jump again or Q/E to spin &amp; flip for score + boost</li>
+          <li><strong>Grind:</strong> land on glowing rails — auto-snap, A/D to balance</li>
+          <li><strong>Wall ride:</strong> jump into a wall while moving along it</li>
+          <li><strong>Boost:</strong> Shift / BOOST when the meter is charged</li>
+          <li><strong>Tag:</strong> skate into a glowing marker and press F / TAG</li>
+          <li>Tag every spot before time runs out. Chain combos for big scores.</li>
+        </ul>
+        <div class="btnRow">
+          <button type="button" class="menuBtn" id="btnHowBack">Back</button>
+        </div>
+      </div>
+
+      <div class="panel" id="pausePanel" style="display:none">
+        <h1 style="font-size:28px">Paused</h1>
+        <p class="tagline">Take a breath. The city can wait.</p>
+        <div class="btnRow">
+          <button type="button" class="menuBtn" id="btnResume">Resume</button>
+          <button type="button" class="menuBtn secondary" id="btnToMenu">Return to Menu</button>
+        </div>
+      </div>
+
+      <div class="panel" id="endPanel" style="display:none">
+        <div class="resultBig" id="endTitle">CLEAR!</div>
+        <p class="tagline" id="endMsg">All tags claimed.</p>
+        <div class="chip" style="display:inline-block;margin:8px 0 14px">
+          <div class="label">Final Score</div>
+          <div class="value" id="endScore">0</div>
+        </div>
+        <div class="btnRow">
+          <button type="button" class="menuBtn mag" id="btnRetry">Run Again</button>
+          <button type="button" class="menuBtn secondary" id="btnEndMenu">Return to Menu</button>
+        </div>
+      </div>
+    </div>
+    <div id="debugBadge">Skyline Riot v0.1</div>
+  </div>
+  <script src="game.js?v=0.1"></script>
+</body>
+</html>
