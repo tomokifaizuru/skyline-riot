@@ -1,9 +1,9 @@
-/* Skyline Riot v0.1 — original concept prototype
+/* Skyline Riot v0.2-char — original concept prototype
    Air Gear vibes × Jet Set Radio energy — original IP only */
 (function () {
   'use strict';
 
-  const VERSION = '0.1';
+  const VERSION = '0.2-char';
   const RUN_TIME = 90;
   const TAG_COUNT = 6;
   const GRAVITY = 28;
@@ -419,62 +419,17 @@
     wall: null, wallTime: 0,
     jumpTime: 0, canCoyote: 0,
     trickSpin: 0, trickFlip: 0, airTricks: 0,
-    mesh: null, skates: null
+    mesh: null, skates: null, skaterCtrl: null
   };
 
   function buildSkater() {
-    const g = new THREE.Group();
-    // body
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.45), toonMat(0x3ef0ff));
-    torso.position.y = 1.15;
-    addOutline(torso);
-    g.add(torso);
-    // hoodie accent
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.35, 0.5), toonMat(0xff3eb5));
-    hood.position.y = 1.45;
-    addOutline(hood);
-    g.add(hood);
-    // head
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), toonMat(0xffe0c2));
-    head.position.y = 1.85;
-    addOutline(head);
-    g.add(head);
-    // hair
-    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.25, 0.55), toonMat(0x1a1a28));
-    hair.position.y = 2.1;
-    g.add(hair);
-    // legs
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.7, 0.3), toonMat(0x243056));
-    legL.position.set(-0.18, 0.55, 0);
-    g.add(legL);
-    const legR = legL.clone();
-    legR.position.x = 0.18;
-    g.add(legR);
-    // skates
-    const skateGeo = new THREE.BoxGeometry(0.35, 0.18, 0.9);
-    const skateMat = toonMat(0xffe566, 0x665522);
-    const sL = new THREE.Mesh(skateGeo, skateMat);
-    sL.position.set(-0.18, 0.12, 0.1);
-    const sR = new THREE.Mesh(skateGeo, skateMat);
-    sR.position.set(0.18, 0.12, 0.1);
-    // thruster glow
-    const thr = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.25, 8), toonMat(0x3ef0ff, 0x3ef0ff));
-    thr.rotation.x = Math.PI / 2;
-    thr.position.set(0, 0, -0.5);
-    sL.add(thr.clone()); sR.add(thr);
-    g.add(sL); g.add(sR);
-    // arms
-    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.65, 0.22), toonMat(0x3ef0ff));
-    armL.position.set(-0.5, 1.15, 0);
-    g.add(armL);
-    const armR = armL.clone();
-    armR.position.x = 0.5;
-    g.add(armR);
-
-    g.scale.setScalar(0.95);
+    // Concept-sheet skater in Miles Morales / Spider-Verse toon look
+    const g = window.SkylineCharacter.createSkater(THREE, { gradientMap: toonGrad });
+    g.scale.setScalar(0.98);
     scene.add(g);
     player.mesh = g;
-    player.skates = [sL, sR];
+    player.skaterCtrl = g.userData.skater;
+    player.skates = player.skaterCtrl.skates;
   }
   buildSkater();
 
@@ -927,7 +882,7 @@
 
     // animate mesh
     player.mesh.position.copy(player.pos);
-    player.mesh.position.y -= 0.95;
+    player.mesh.position.y -= 0.95; // physics foot offset — character local feet at ~0
     player.mesh.rotation.y = player.yaw;
     if (player.state === 'air') {
       player.mesh.rotation.y += player.trickSpin;
@@ -939,16 +894,16 @@
     } else {
       player.mesh.rotation.x *= 1 - dt * 8;
       player.mesh.rotation.z *= 1 - dt * 8;
-      // skate lean
       const lean = Math.max(-0.35, Math.min(0.35, -stick.x * 0.3));
       player.mesh.rotation.z = lean;
     }
-    // thruster flicker when boosting
-    player.skates.forEach(s => {
-      s.children.forEach(c => {
-        if (c.material && c.material.emissive) c.material.emissiveIntensity = boosting ? 1.2 : 0.4;
-      });
-    });
+    // Hierarchical idle / skate / grind / air poses
+    if (player.skaterCtrl) {
+      const spd = Math.hypot(player.vel.x, player.vel.z);
+      let st = player.state;
+      if (st === 'ground') st = spd > 0.8 ? 'skate' : 'idle';
+      player.skaterCtrl.update(dt, { state: st, speed: spd, boosting: boosting });
+    }
   }
 
   function updateCamera(dt) {

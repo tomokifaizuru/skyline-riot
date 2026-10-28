@@ -1,6 +1,6 @@
 # Skyline Riot
 
-**v0.1 concept prototype** — motorised **Sky Treks**, rooftop lines, rail grinds, wall rides, and graffiti tags.
+**v0.2-char concept prototype** — motorised **Sky Treks**, rooftop lines, rail grinds, wall rides, and graffiti tags.
 
 Inspired by the energy of Air Gear and Jet Set Radio, with **original characters, names, and setting only**.
 
@@ -37,4 +37,9 @@ Mobile-first (touch stick + JUMP / TAG / BOOST). Keyboard on PC.
 
 ## Version
 
-`v0.1` — small city block, 6 tag spots, 90s timer.
+`v0.2-char` — concept-sheet skater (Spider-Verse look) + small city block, 6 tag spots, 90s timer.
+
+
+## Character viewer
+
+Open [character.html](character.html) for a turntable of the Sky Trek skater (front/back, idle/skate/grind, Spider-Verse halftone FX).

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Skyline Riot — Character Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="character.js?v=0.2-char"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(12, 16, 32, 0.82);
+      --cyan: #3ef0ff;
+      --mag: #ff3eb5;
+      --yel: #ffe566;
+      --orange: #ff5a12;
+      --text: #f2f4ff;
+      --muted: #8a93b0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif; touch-action: none; }
+    #c { display: block; width: 100%; height: 100%; }
+    #ui {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: max(12px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+    }
+    .top, .bottom { pointer-events: auto; }
+    .top h1 {
+      font-size: clamp(18px, 4vw, 26px); letter-spacing: 0.08em; text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(62,240,255,0.35);
+    }
+    .top .sub { color: var(--muted); font-size: 12px; margin-top: 4px; letter-spacing: 0.06em; }
+    .badge {
+      display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid rgba(255,90,18,0.5); color: var(--orange); font-size: 11px; letter-spacing: 0.12em;
+      background: rgba(255,90,18,0.08);
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .panel {
+      background: var(--panel); backdrop-filter: blur(10px);
+      border: 1px solid rgba(62,240,255,0.18); border-radius: 14px; padding: 10px 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    }
+    button {
+      appearance: none; border: 1px solid rgba(62,240,255,0.35); background: rgba(62,240,255,0.08);
+      color: var(--text); font: inherit; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer; min-height: 42px;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+    }
+    button:active { transform: scale(0.96); }
+    button.active, button[aria-pressed="true"] {
+      background: rgba(255,62,181,0.2); border-color: var(--mag); color: #fff;
+      box-shadow: 0 0 16px rgba(255,62,181,0.25);
+    }
+    button.secondary { border-color: rgba(255,229,102,0.35); background: rgba(255,229,102,0.08); }
+    .hint { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.4; }
+    a.back {
+      pointer-events: auto; color: var(--cyan); text-decoration: none; font-size: 13px;
+      border-bottom: 1px solid rgba(62,240,255,0.35);
+    }
+    #fxLabel { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <div class="top">
+      <div class="panel" style="display:inline-block;max-width:min(92vw,420px)">
+        <h1>Sky Trek Skater</h1>
+        <div class="sub">Concept sheet · Miles Morales / Spider-Verse look</div>
+        <span class="badge">v0.2-char</span>
+        <div style="margin-top:10px"><a class="back" href="index.html">← Back to game</a></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="panel">
+        <div class="row" style="margin-bottom:8px">
+          <button type="button" id="btnFront" aria-pressed="true">Front</button>
+          <button type="button" id="btnBack" aria-pressed="false">Back</button>
+          <button type="button" id="btnThree" class="secondary" aria-pressed="false">¾ View</button>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <button type="button" id="btnIdle" aria-pressed="true">Idle</button>
+          <button type="button" id="btnSkate" aria-pressed="false">Skate</button>
+          <button type="button" id="btnGrind" aria-pressed="false">Grind</button>
+          <button type="button" id="btnAir" aria-pressed="false">Air</button>
+        </div>
+        <div class="row">
+          <button type="button" id="btnFx" aria-pressed="true">Verse FX</button>
+          <button type="button" id="btnAuto" aria-pressed="true">Auto-spin</button>
+          <span id="fxLabel">halftone + print offset</span>
+        </div>
+        <p class="hint">Drag to orbit · Pinch / scroll to zoom · Works on phone</p>
+      </div>
+    </div>
+  </div>
+  <script>
+(function () {
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x141a32, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x141a32, 8, 28);
+
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 1.35, 4.2);
+
+  // Lights — high contrast for toon / Spider-Verse
+  scene.add(new THREE.AmbientLight(0x7a88b8, 0.55));
+  const key = new THREE.DirectionalLight(0xfff0d8, 1.05);
+  key.position.set(3.5, 6, 4);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x66ccff, 0.55);
+  rim.position.set(-4, 3, -3);
+  scene.add(rim);
+  const fill = new THREE.PointLight(0xff5a12, 0.45, 12);
+  fill.position.set(-1.5, 1.2, 2);
+  scene.add(fill);
+  const mag = new THREE.PointLight(0xff3eb5, 0.3, 10);
+  mag.position.set(2, 0.8, -2);
+  scene.add(mag);
+
+  // Floor disc / shadow plate
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(1.6, 48),
+    new THREE.MeshBasicMaterial({ color: 0x0a0e1c, transparent: true, opacity: 0.65 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.001;
+  scene.add(floor);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(1.55, 1.62, 48),
+    new THREE.MeshBasicMaterial({ color: 0x3ef0ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.002;
+  scene.add(ring);
+
+  // Backdrop panels (comic panel vibe)
+  const bg = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 10),
+    new THREE.MeshBasicMaterial({ color: 0x1a2240 })
+  );
+  bg.position.set(0, 2.2, -4);
+  scene.add(bg);
+
+  const skater = window.SkylineCharacter.createSkater(THREE);
+  // Feet on floor: hips at 0.92, legs hang to ~ -1.02 from hips → feet ~ -0.1; lift so boots sit on y=0
+  skater.position.y = 0.0;
+  scene.add(skater);
+  const ctrl = skater.userData.skater;
+
+  // Orbit state
+  let yaw = 0.35, pitch = 0.12, dist = 4.2;
+  let autoSpin = true;
+  let animMode = 'idle';
+  let verseOn = true;
+  let dragging = false, lastX = 0, lastY = 0;
+  let pinchStart = 0, distStart = 0;
+
+  const verse = window.SkylineCharacter.createVersePass(THREE, renderer, scene, camera);
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    verse.setSize(w, h);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function setPressed(id, on) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function setView(kind) {
+    if (kind === 'front') { yaw = 0; pitch = 0.08; }
+    else if (kind === 'back') { yaw = Math.PI; pitch = 0.08; }
+    else { yaw = 0.55; pitch = 0.18; } // 3/4
+    autoSpin = false;
+    setPressed('btnAuto', false);
+    setPressed('btnFront', kind === 'front');
+    setPressed('btnBack', kind === 'back');
+    setPressed('btnThree', kind === 'three');
+  }
+
+  function setAnim(name) {
+    animMode = name;
+    ctrl.setAnim(name === 'skate' ? 'skate' : name);
+    ['Idle','Skate','Grind','Air'].forEach(n => {
+      setPressed('btn' + n, n.toLowerCase() === name);
+    });
+  }
+
+  document.getElementById('btnFront').onclick = () => setView('front');
+  document.getElementById('btnBack').onclick = () => setView('back');
+  document.getElementById('btnThree').onclick = () => setView('three');
+  document.getElementById('btnIdle').onclick = () => setAnim('idle');
+  document.getElementById('btnSkate').onclick = () => setAnim('skate');
+  document.getElementById('btnGrind').onclick = () => setAnim('grind');
+  document.getElementById('btnAir').onclick = () => setAnim('air');
+  document.getElementById('btnFx').onclick = () => {
+    verseOn = !verseOn;
+    setPressed('btnFx', verseOn);
+  };
+  document.getElementById('btnAuto').onclick = () => {
+    autoSpin = !autoSpin;
+    setPressed('btnAuto', autoSpin);
+  };
+
+  // Pointer orbit
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+    autoSpin = false; setPressed('btnAuto', false);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    yaw -= dx * 0.007;
+    pitch = Math.max(-0.35, Math.min(0.55, pitch + dy * 0.005));
+  });
+  canvas.addEventListener('pointerup', () => { dragging = false; });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    dist = Math.max(2.2, Math.min(7.5, dist + e.deltaY * 0.004));
+  }, { passive: false });
+
+  // Pinch zoom
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchStart = Math.hypot(dx, dy);
+      distStart = dist;
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const d = Math.hypot(dx, dy);
+      dist = Math.max(2.2, Math.min(7.5, distStart * (pinchStart / d)));
+    }
+  }, { passive: true });
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (autoSpin) yaw += dt * 0.45;
+
+    const info = {
+      state: animMode === 'skate' ? 'skate' : animMode,
+      speed: animMode === 'skate' ? 12 : (animMode === 'grind' ? 8 : 0),
+      boosting: animMode === 'skate'
+    };
+    ctrl.update(dt, info);
+
+    const lookY = 1.05;
+    camera.position.set(
+      Math.sin(yaw) * Math.cos(pitch) * dist,
+      lookY + Math.sin(pitch) * dist * 0.85,
+      Math.cos(yaw) * Math.cos(pitch) * dist
+    );
+    camera.lookAt(0, lookY, 0);
+
+    if (verseOn) verse.render(now * 0.001);
+    else renderer.render(scene, camera);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // Expose for QA screenshots
+  window.__CHAR = {
+    setView, setAnim,
+    setVerse: (v) => { verseOn = !!v; setPressed('btnFx', verseOn); },
+    setAuto: (v) => { autoSpin = !!v; setPressed('btnAuto', autoSpin); },
+    getState: () => ({ yaw, pitch, dist, animMode, verseOn, autoSpin })
+  };
+})();
+  </script>
+</body>
+</html>
